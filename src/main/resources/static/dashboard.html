@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>StudyVault Dashboard</title>
+    <link rel="stylesheet" href="css/dashboard.css"/>
+</head>
+<body>
+<div class="container">
+    <div class="sidebar">
+        <h2>StudyVault</h2>
+        <ul>
+            <li><a href="#">Dashboard</a></li>
+            <li><a href="#">Uploaded Notes</a></li>
+            <li><a href="#">Contributors</a></li>
+            <li><a href="#" onclick="logout()">Logout</a></li>
+        </ul>
+    </div>
+
+    <div class="main-content">
+        <div class="top-bar">
+            <h2>Welcome, <span id="username">User</span> 👋</h2>
+            <input type="text" placeholder="Search notes..." />
+        </div>
+
+        <div class="stats">
+            <div class="card">
+                <h3>Total Notes</h3>
+                <p id="total-notes">0</p>
+            </div>
+            <div class="card">
+                <h3>Your Uploads</h3>
+                <p>0</p>
+            </div>
+            <div class="card">
+                <h3>Contributors</h3>
+                <p>1</p>
+            </div>
+        </div>
+
+        <div class="recent-uploads">
+            <h3>Recently Uploaded Notes</h3>
+            <ul class="note-list">
+                <!-- Notes will be dynamically added here -->
+            </ul>
+        </div>
+
+        <button id="uploadBtn">Upload Note</button>
+
+        <div class="modal" id="uploadModal">
+            <div class="modal-content">
+                <span class="close" id="closeModal">&times;</span>
+                <h2>Upload Note</h2>
+                <form id="uploadForm">
+                    <label for="topic">Topic Name:</label>
+                    <input type="text" id="topic" name="topic" required />
+
+                    <label for="driveLink">Google Drive Link:</label>
+                    <input type="url" id="driveLink" name="driveLink" required />
+
+                    <button type="submit">Submit</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script defer src="js/dashboard.js"></script>
+</body>
+</html>
