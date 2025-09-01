@@ -12,14 +12,16 @@ public class User {
 
     private String name;
 
-    @Column(unique = true)
+    @Column(unique = true, nullable = false)
     private String email;
 
     private String password;
 
-    private String otp;
-
     private boolean verified = false;
+
+    // Transient OTP field for temporary storage (not persisted in DB)
+    @Transient
+    private String otp;
 
     public User() {}
 
@@ -30,7 +32,7 @@ public class User {
         this.verified = false;
     }
 
-    // Getters and Setters
+    // Getters & Setters
     public Long getId() {
         return id;
     }
@@ -59,19 +61,19 @@ public class User {
         this.password = password;
     }
 
-    public String getOtp() {
-        return otp;
-    }
-
-    public void setOtp(String otp) {
-        this.otp = otp;
-    }
-
     public boolean isVerified() {
         return verified;
     }
 
     public void setVerified(boolean verified) {
         this.verified = verified;
+    }
+
+    public String getOtp() {
+        return otp;
+    }
+
+    public void setOtp(String otp) {
+        this.otp = otp;
     }
 }

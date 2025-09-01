@@ -1,17 +1,40 @@
-// Set username from localStorage
-document.addEventListener("DOMContentLoaded", () => {
-  const username = localStorage.getItem("username") || "User";
-  document.getElementById("username").innerText = username;
+// ✅ On page load, fetch current user from backend
+document.addEventListener("DOMContentLoaded", async () => {
+  const email = localStorage.getItem("userEmail"); // we store email at login
+
+  if (!userEmail) {
+    // If no email in storage, force login
+    window.location.href = "login.html";
+    return;
+  }
+
+  try {
+    const response = await fetch(`http://localhost:8080/api/users/me?email=${email}`);
+    if (response.ok) {
+      const user = await response.json();
+      document.getElementById("username").innerText = user.name;
+    } else {
+      alert("Session expired or user not verified. Please login again.");
+      localStorage.clear();
+      window.location.href = "login.html";
+    }
+  } catch (error) {
+    console.error("Error fetching user:", error);
+    alert("Something went wrong. Please login again.");
+    localStorage.clear();
+    window.location.href = "login.html";
+  }
+
   loadRecentNotes();
 });
 
-// Logout function
+// ✅ Logout function
 function logout() {
-  localStorage.removeItem("username");
-  window.location.href = "login.html"; // or your login page
+  localStorage.clear();
+  window.location.href = "login.html";
 }
 
-// Modal logic
+// ✅ Modal logic
 const modal = document.getElementById("uploadModal");
 const uploadBtn = document.getElementById("uploadBtn");
 const closeBtn = document.getElementById("closeModal");
@@ -22,7 +45,7 @@ window.onclick = (event) => {
   if (event.target === modal) modal.style.display = "none";
 };
 
-// Upload form
+// ✅ Upload form
 document.getElementById("uploadForm").addEventListener("submit", async (e) => {
   e.preventDefault();
   const topic = document.getElementById("topic").value.trim();
@@ -54,7 +77,7 @@ document.getElementById("uploadForm").addEventListener("submit", async (e) => {
   }
 });
 
-// Load notes from backend
+// ✅ Load notes from backend
 async function loadRecentNotes() {
   try {
     const response = await fetch("http://localhost:8080/api/notes/all");

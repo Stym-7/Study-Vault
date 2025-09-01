@@ -31,4 +31,31 @@ public class NoteController {
     public List<Note> getAllNotes() {
         return noteRepository.findAll();
     }
+
+    // Delete Note API
+    @DeleteMapping("/delete/{id}")
+    public String deleteNote(@PathVariable Long id) {
+        if (noteRepository.existsById(id)) {
+            noteRepository.deleteById(id);
+            return "Note deleted successfully!";
+        } else {
+            return "Note not found!";
+        }
+    }
+
+    // Get Total Notes Count (for dashboard stats)
+    @GetMapping("/count")
+    public long getNotesCount() {
+        return noteRepository.count();
+    }
+
+    // Get Recently Uploaded Notes (Top 5)
+    @GetMapping("/recent")
+    public List<Note> getRecentNotes() {
+        return noteRepository.findAll()
+                .stream()
+                .sorted((a, b) -> Long.compare(b.getId(), a.getId())) // Latest first
+                .limit(5)
+                .toList();
+    }
 }

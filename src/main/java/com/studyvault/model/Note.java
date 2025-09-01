@@ -7,6 +7,7 @@ import lombok.*;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@Table(name = "notes")
 public class Note {
 
     @Id
@@ -17,4 +18,8 @@ public class Note {
 
     @Column(name = "drive_link")
     private String driveLink;
+
+    @ManyToOne
+    @JoinColumn(name = "user_id", nullable = false) // Every note must belong to a user
+    private User user;
 }
