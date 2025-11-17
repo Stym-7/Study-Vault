@@ -8,4 +8,6 @@ import java.util.Optional;
 public interface OtpVerificationRepository extends JpaRepository<OtpVerification, Long> {
 
     Optional<OtpVerification> findTopByEmailOrderByGeneratedAtDesc(String email);
+    void deleteByEmail(String email);
+
 }

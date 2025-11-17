@@ -3,23 +3,27 @@
 <head>
     <meta charset="UTF-8" />
     <title>Verify OTP - StudyVault</title>
-    <style>
-        body { font-family: Arial; padding: 20px; background: #f5f5f5; }
-        form { max-width: 400px; margin: auto; background: white; padding: 20px; border-radius: 10px; }
-        input { width: 100%; padding: 10px; margin: 10px 0; }
-        button { padding: 10px 20px; background: blue; color: white; border: none; cursor: pointer; }
-        .message { margin-top: 10px; font-weight: bold; }
-    </style>
+    <link rel="stylesheet" href="css/otp.css">
 </head>
 <body>
 
-<h2 style="text-align:center;">Verify OTP</h2>
+<div class="wrapper">
+    <div class="form-container">
+        <div class="form-card">
+            <h2>Verify OTP</h2>
+            <p class="form-sub">Enter the 6-digit code sent to your email</p>
 
-<form id="otpForm">
-    <input type="text" id="otp" placeholder="Enter 6-digit OTP" maxlength="6" required />
-    <button type="submit">Verify OTP</button>
-    <div class="message" id="msg"></div>
-</form>
+            <form id="otpForm">
+                <div class="form-group">
+                    <input type="text" id="otp" placeholder="Enter 6-digit OTP" maxlength="6" required />
+                </div>
+
+                <button type="submit">Verify OTP</button>
+                <div class="message" id="msg"></div>
+            </form>
+        </div>
+    </div>
+</div>
 
 <script>
     const form = document.getElementById("otpForm");
@@ -59,7 +63,15 @@
                 msgDiv.innerText = "OTP verified successfully!";
                 localStorage.removeItem("user_email");
                 setTimeout(() => {
-                    alert("Email verified! Please log in.");
+                     if (res.ok) {
+                          msgDiv.style.color = "green";
+                          msgDiv.innerText = "OTP verified successfully!";
+                          localStorage.removeItem("user_email");
+
+                          setTimeout(() => {
+                           window.location.href = "login.html";
+                           }, 1500);
+                     }
                     window.location.href = "login.html";
                 }, 1500);
             } else {

@@ -1,8 +1,22 @@
 package com.studyvault.dto;
 
+import jakarta.validation.constraints.NotBlank;
+
 public class OtpVerificationRequest {
+
+    @NotBlank(message = "Email is required")
     private String email;
+
+    @NotBlank(message = "OTP is required")
     private String otp;
+
+    public OtpVerificationRequest() {
+    }
+
+    public OtpVerificationRequest(String email, String otp) {
+        this.email = email;
+        this.otp = otp;
+    }
 
     public String getEmail() {
         return email;

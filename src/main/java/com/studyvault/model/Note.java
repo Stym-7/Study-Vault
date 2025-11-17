@@ -19,7 +19,8 @@ public class Note {
     @Column(name = "drive_link")
     private String driveLink;
 
+    // A note belongs to a user (optional if you want to upload without login)
     @ManyToOne
-    @JoinColumn(name = "user_id", nullable = false) // Every note must belong to a user
+    @JoinColumn(name = "user_id", nullable = true)
     private User user;
 }

@@ -18,7 +18,7 @@ public class OtpService {
 
     public String generateOtp() {
         Random random = new Random();
-        return String.format("%04d", random.nextInt(10000));
+        return String.format("%06d", random.nextInt(1000000)); // 6-digit OTP
     }
 
     public void saveOtp(String email, String otp) {
@@ -38,10 +38,17 @@ public class OtpService {
         OtpVerification otpRecord = latestOtp.get();
 
         // Check expiry
-        if (otpRecord.getGeneratedAt().plusMinutes(OTP_VALID_DURATION_MINUTES).isBefore(LocalDateTime.now())) {
+        if (otpRecord.getGeneratedAt()
+                .plusMinutes(OTP_VALID_DURATION_MINUTES)
+                .isBefore(LocalDateTime.now())) {
             return false; // Expired
         }
 
         return otpRecord.getOtp().equals(enteredOtp);
+    }
+
+    // ✅ Required for cleanup after OTP verification
+    public void deleteOtpsForEmail(String email) {
+        otpRepository.deleteByEmail(email);
     }
 }

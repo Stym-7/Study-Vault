@@ -1,19 +1,22 @@
 package com.studyvault.controller;
 
+import com.studyvault.dto.OtpVerificationRequest;
+import com.studyvault.model.PendingUser;
 import com.studyvault.model.User;
+import com.studyvault.repository.PendingUserRepository;
 import com.studyvault.repository.UserRepository;
 import com.studyvault.service.EmailService;
-import com.studyvault.util.OTPUtil;
-import com.studyvault.dto.OtpVerificationRequest;
+import com.studyvault.service.OtpService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Instant;
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
 
 @CrossOrigin(origins = "http://127.0.0.1:5500")
 @RestController
@@ -24,57 +27,97 @@ public class UserController {
     private UserRepository userRepository;
 
     @Autowired
+    private PendingUserRepository pendingUserRepository;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     @Autowired
     private EmailService emailService;
 
-    // Temporary storage for unverified users
-    private final ConcurrentHashMap<String, User> tempUserMap = new ConcurrentHashMap<>();
+    @Autowired
+    private OtpService otpService;
 
-    // ✅ Register user (store temporarily until OTP verified)
+    // -----------------------------------------
+    // ✅ REGISTER (store pending user, send OTP)
+    // -----------------------------------------
     @PostMapping("/register")
     public ResponseEntity<String> registerUser(@Valid @RequestBody User user) {
-        if (userRepository.findByEmail(user.getEmail()) != null || tempUserMap.containsKey(user.getEmail())) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Email already registered or pending verification");
+
+        // Already a real user?
+        if (userRepository.findByEmail(user.getEmail()) != null) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("Email already registered");
         }
 
-        String encodedPassword = passwordEncoder.encode(user.getPassword());
-        user.setPassword(encodedPassword);
+        // Already pending?
+        if (pendingUserRepository.findByEmail(user.getEmail()).isPresent()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("Email already pending verification");
+        }
 
-        String otp = OTPUtil.generateOTP();
-        user.setOtp(otp);
-        user.setVerified(false);
+        // Save PENDING user
+        PendingUser pending = PendingUser.builder()
+                .email(user.getEmail())
+                .name(user.getName())
+                .passwordHash(passwordEncoder.encode(user.getPassword()))
+                .createdAt(Instant.now())
+                .build();
 
-        tempUserMap.put(user.getEmail(), user);
+        pendingUserRepository.save(pending);
+
+        // Generate OTP + save
+        String otp = otpService.generateOtp();
+        otpService.saveOtp(user.getEmail(), otp);
+
+        // Send email
         emailService.sendOTPEmail(user.getEmail(), otp);
 
         return ResponseEntity.ok("Registration initiated. OTP sent to email.");
     }
 
-    // ✅ Verify OTP and store user in DB
+    // -----------------------------------------
+    // ✅ VERIFY OTP → Convert PENDING → REAL USER
+    // -----------------------------------------
     @PostMapping("/verify-otp")
+    @Transactional
     public ResponseEntity<String> verifyOtp(@RequestBody OtpVerificationRequest request) {
-        String email = request.getEmail();
-        String otp = request.getOtp();
 
-        User user = tempUserMap.get(email);
-        if (user == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("No pending verification found for this email");
+        boolean validOtp = otpService.verifyOtp(request.getEmail(), request.getOtp());
+
+        if (!validOtp) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("Invalid or expired OTP");
         }
 
-        if (otp.equals(user.getOtp())) {
-            user.setVerified(true);
-            user.setOtp(null);
-            userRepository.save(user);
-            tempUserMap.remove(email);
-            return ResponseEntity.ok("Email verification successful");
-        } else {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid OTP");
+        // Find pending user
+        PendingUser pending = pendingUserRepository.findByEmail(request.getEmail())
+                .orElse(null);
+
+        if (pending == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body("No pending verification found for this email");
         }
+
+        // Create real user
+        User realUser = new User();
+        realUser.setName(pending.getName());
+        realUser.setEmail(pending.getEmail());
+        realUser.setPassword(pending.getPasswordHash());
+        realUser.setVerified(true);
+
+        userRepository.save(realUser);
+
+        // Cleanup
+        pendingUserRepository.deleteByEmail(pending.getEmail());
+        otpService.deleteOtpsForEmail(pending.getEmail());
+
+        return ResponseEntity.ok("Email verification successful");
     }
 
-    // ✅ Login
+    // -----------------------------------------
+    // ✅ LOGIN (unchanged)
+    // -----------------------------------------
     @PostMapping("/login")
     public ResponseEntity<String> loginUser(@RequestBody User loginRequest) {
         User existingUser = userRepository.findByEmail(loginRequest.getEmail());
@@ -98,19 +141,20 @@ public class UserController {
         }
     }
 
-    // 🟡 Get all users
+    // -----------------------------------------
+    // OTHER ENDPOINTS (unchanged)
+    // -----------------------------------------
+
     @GetMapping
     public List<User> getAllUsers() {
         return userRepository.findAll();
     }
 
-    // 🟡 Get user by email
     @GetMapping("/{email}")
     public User getUserByEmail(@PathVariable String email) {
         return userRepository.findByEmail(email);
     }
 
-    // ✅ API to get current user info (safe) by email (for dashboard)
     @GetMapping("/me")
     public ResponseEntity<?> getCurrentUser(@RequestParam String email) {
         User user = userRepository.findByEmail(email);
@@ -121,22 +165,16 @@ public class UserController {
         return ResponseEntity.ok(new UserDTO(user.getName(), user.getEmail()));
     }
 
-    // ✅ Inner DTO class to return safe user info
     static class UserDTO {
-        private String name;
-        private String email;
+        private final String name;
+        private final String email;
 
         public UserDTO(String name, String email) {
             this.name = name;
             this.email = email;
         }
 
-        public String getName() {
-            return name;
-        }
-
-        public String getEmail() {
-            return email;
-        }
+        public String getName() { return name; }
+        public String getEmail() { return email; }
     }
 }
